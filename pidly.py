@@ -1,4 +1,4 @@
-"""pIDLy 0.2.4: IDL within Python.
+"""pIDLy 0.2.4+: IDL within Python.
 
 Control ITT's IDL (Interactive Data Language) from within Python.
 
@@ -20,7 +20,7 @@ Usage:
 Consult the docstrings or README.txt in the source distribution for
 further information.
 
-Copyright (c) 2008, Anthony Smith
+Copyright (c) 2008-2012, Anthony Smith
 A.J.Smith 'at' sussex.ac.uk
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -54,7 +54,7 @@ import pexpect
 
 
 now = datetime.now
-__version__ = '0.2.4'
+__version__ = '0.2.4+'
 STR_DELIMITER = '!@#'  # To distinguish items in an array of strings
 try:
     __IPYTHON__
@@ -135,8 +135,11 @@ class IDL(pexpect.spawn):
            [2, 3]])
 
     With keywords (/L64 -> L64=True or L64=1)
-    >>> idl.histogram(range(4), binsize=3, L64=True)
-    array([3, 1], dtype=int64)
+    >>> x = idl.histogram(range(4), binsize=3, L64=True)
+    >>> print x
+    [3 1]
+    >>> print x.dtype
+    int64
 
     IDL procedure with Python argument(s):
     >>> idl.pro('plot', range(10), range(10), xstyle=True, ystyle=True)
@@ -184,11 +187,13 @@ class IDL(pexpect.spawn):
         # be input as an IDL command. This limit may be reached by
         # splitting the line and sending as more than one send()
         # command
+        # (Must be 1244 or greater, otherwise command in ev() fails)
         self.max_idl_code_area = kwargs.pop('max_idl_code_area', 2048)
 
-        # Number of array elements in IDL code area limited to 331 (don't ask)
+        # Number of array elements in IDL code area limited to 249 (don't ask)
+        # (Was 331 on IDL 6.x and 7[?], but 249 on 7.1.1)
         self.max_n_elements_code_area = kwargs.pop('max_n_elements_code_area',
-                                                   331)
+                                                   249)
 
         # Custom IDL prompt
         self.idl_prompt = kwargs.pop('idl_prompt', 'IDL> ')
@@ -1244,7 +1249,7 @@ class TestPidly(unittest.TestCase):
         self.assertEqual(numpy.array(x).dtype, y.dtype)
         self.assertEqual(numpy.array(x).shape, y.shape)
 
-    def test_6d_int_array(self):
+    def test_6d_int_array_tests_max_n_elements_code_area(self):
         x = numpy.arange(2*3*4*5*6*7).reshape(2,3,4,5,6,7)
         y = self.sendAndReceive(x)
         self.assertEqual(y.tolist(), x.tolist())
