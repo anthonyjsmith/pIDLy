@@ -475,13 +475,9 @@ class IDL(pexpect.spawn):
                 raise IDLInputOverflowError, \
                       "Expression too long for IDL to receive: cannot execute"
         else:
-            try:
-                return self.sendline(expression)
-            except OSError:
-                if not self.isalive():
-                    raise IOError, "IDL session is not alive."
-                else:
-                    raise
+            if not self.isalive():
+                raise IOError, "IDL session is not alive."
+            return self.sendline(expression)
 
 
     def _python_to_idl_input(self, python_input, assign_to=None):
