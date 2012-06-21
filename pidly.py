@@ -1,4 +1,4 @@
-﻿"""pIDLy 0.2.4+: IDL within Python.
+"""pIDLy 0.2.4+: IDL within Python.
 
 Control ITT's IDL (Interactive Data Language) from within Python.
 
@@ -751,11 +751,6 @@ class IDL(pexpect.spawn):
                     print self.before
                     sys.stdout.flush()
                 self.interact(show_prompt=False)
-                break
-            except pexpect.EOF, err:
-                import sys
-                sys.stderr.write('ERROR: IDL session appears to have exited or otherwise closed\n')
-                raise IOError, "IDL session appears to have exited or otherwise closed."
                 break
             new_line = self.before.replace('\r', '')
             if new_line.startswith('% Stop encountered:'):
