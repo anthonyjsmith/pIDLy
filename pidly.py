@@ -188,7 +188,7 @@ class IDL(pexpect.spawn):
         # splitting the line and sending as more than one send()
         # command
         # (Must be 1244 or greater, otherwise command in ev() fails)
-        self.max_idl_code_area = kwargs.pop('max_idl_code_area', 2048)
+        self.max_idl_code_area = kwargs.pop('max_idl_code_area', 2046) # 2048?
 
         # Number of array elements in IDL code area limited to 249 (don't ask)
         # (Was 331 on IDL 6.x and 7[?], but 249 on 7.1.1)
@@ -463,7 +463,7 @@ class IDL(pexpect.spawn):
         if len(expression) > self.max_sendline:
             if len(expression) <= self.max_idl_code_area:
                 # Long line: need to send it in chunks
-                expression = ''.join([expression, '\n'])
+                expression += '\n'
                 for i in range((len(expression) - 1)
                                / (self.max_sendline + 1) + 1):
                     self.send(expression[(self.max_sendline + 1) * i
@@ -475,7 +475,13 @@ class IDL(pexpect.spawn):
                 raise IDLInputOverflowError, \
                       "Expression too long for IDL to receive: cannot execute"
         else:
-            return self.sendline(expression)
+            try:
+                return self.sendline(expression)
+            except OSError:
+                if not self.isalive():
+                    raise IOError, "IDL session is not alive."
+                else:
+                    raise
 
 
     def _python_to_idl_input(self, python_input, assign_to=None):
@@ -737,11 +743,12 @@ class IDL(pexpect.spawn):
         halt = False
         while index == 1:
             try:
-                index = self.expect([self.idl_prompt, '\n'])
+                # 0: waiting for input, 1: output received, 2: IDL exited
+                index = self.expect([self.idl_prompt, '\n', pexpect.EOF])
             except KeyboardInterrupt:
                 print "\npIDLy: KeyboardInterrupt"
                 if not _ipython:
-                    print self.before,
+                    print self.before
                     sys.stdout.flush()
                 self.interact(show_prompt=False)
                 break
@@ -963,6 +970,10 @@ class TestPidly(unittest.TestCase):
         self.end_time = now()
         return y
 
+    def test_idl_dead(self):
+        self.idl('exit')
+        self.assertRaises(IOError, self.idl, 'print, 1')
+
     def test_longest_line(self):
         s = ["x='"]
         for i in range(self.idl.max_sendline - 4):
@@ -978,11 +989,8 @@ class TestPidly(unittest.TestCase):
         self.assertEqual(y, x[3:-1])
 
     def test_longest_string(self):
-        s = ["x='"]
-        for i in range(self.idl.max_idl_code_area - 4):
-            s.append('a')
-        s.append("'")
-        x = ''.join(s)
+        n = self.idl.max_idl_code_area - 10
+        x = ''.join(["x='"] + ["a" for i in range(n)] + ["'"])
         self.start_time = now()
         self.idl(x)
         self.mid_time = now()
