@@ -66,6 +66,9 @@ Initiate::
 Or::
      idl = pidly.IDL('/path/to/idl')
 
+Or::
+     idl = pidly.IDL('/path/to/gdl', idl_prompt='GDL> ')
+
 Execute commands::
  >>> idl('x = total([1, 1], /int)')
 
@@ -163,7 +166,6 @@ Further information is available
 * Complex numbers
 * Raise exceptions (e.g., for unsupported types)
 * Passing special characters in strings (\t, \n etc)
-* Make compatible with GDL
 
 
 7. Release history
@@ -173,6 +175,7 @@ Version ..., unreleased
 -----------------------
 
 * Better behaviour when IDL is no longer alive
+* Works with GDL
 
 Version 0.2.4, 22 Feb 2008
 --------------------------
