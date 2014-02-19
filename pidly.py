@@ -1,4 +1,4 @@
-"""pIDLy 0.2.4+: IDL within Python.
+"""pIDLy 0.2.5: IDL within Python.
 
 Control ITT's IDL (Interactive Data Language) from within Python.
 
@@ -20,7 +20,7 @@ Usage:
 Consult the docstrings or README.txt in the source distribution for
 further information.
 
-Copyright (c) 2008-2012, Anthony Smith
+Copyright (c) 2008-2014, Anthony Smith
 anthonysmith80@gmail.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -54,7 +54,7 @@ import pexpect
 
 
 now = datetime.now
-__version__ = '0.2.4+'
+__version__ = '0.2.5'
 STR_DELIMITER = '!@#'  # To distinguish items in an array of strings
 try:
     __IPYTHON__
@@ -1242,8 +1242,8 @@ class TestPidly(unittest.TestCase):
                              [d[key].tolist() for key in d])
         for i, d in enumerate(x):
             for key in d:
-                self.assertEqual(numpy.array(d[key]).dtype,
-                                 y[i][key].dtype)
+                self.assertEqual(d[key][0].dtype,
+                                 y[i][key][0].dtype)
         self.assertEqual(numpy.array(x).shape, numpy.array(y).shape)
 
     def test_4d_int_array(self):

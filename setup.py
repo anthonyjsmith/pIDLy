@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup
 
 setup(name='pIDLy',
-      version='0.2.4',
+      version='0.2.5',
       description='IDL within Python',
       long_description='Control ITT\'s IDL (Interactive Data Language) from within Python',
       author='Anthony Smith',

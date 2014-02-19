@@ -6,9 +6,9 @@ pIDLy: IDL within Python
 Control ITT's IDL (Interactive Data Language) from within Python.
 -----------------------------------------------------------------
 
-Version 0.2.4+
+Version 0.2.5
 
-Copyright (c) 2008-2012, Anthony Smith
+Copyright (c) 2008-2014, Anthony Smith
 
 anthonysmith80@gmail.com
 
@@ -55,13 +55,13 @@ This version tested on
 2. Installation
 ===============
 
-1. Type "easy_install pidly"
+1. Type "pip install pidly"
 
 If that fails:
 
-1. Download http://peak.telecommunity.com/dist/ez_setup.py
-2. run it (type "python ez_setup.py")
-3. Type "easy_install pidly"
+1. Download https://raw.github.com/pypa/pip/master/contrib/get-pip.py
+2. run it (type "python get-pip.py")
+3. Type "pip install pidly"
 
 
 3. Usage
@@ -178,8 +178,8 @@ Further information is available
 7. Release history
 ==================
 
-Version ..., unreleased
------------------------
+Version 0.2.5, 19 Feb 2014
+--------------------------
 
 * Better behaviour when IDL is no longer alive
 * Works with GDL
