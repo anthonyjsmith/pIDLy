@@ -2,7 +2,7 @@
 
 Control ITT's IDL (Interactive Data Language) from within Python.
 
-http://astronomy.sussex.ac.uk/~anthonys/pidly/
+https://github.com/anthonyjsmith/pIDLy
 http://pypi.python.org/pypi/pIDLy/
 
 Requirements:
@@ -21,7 +21,7 @@ Consult the docstrings or README.txt in the source distribution for
 further information.
 
 Copyright (c) 2008-2012, Anthony Smith
-A.J.Smith 'at' sussex.ac.uk
+anthonysmith80@gmail.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
