@@ -10,7 +10,15 @@ Version 0.2.4+
 
 Copyright (c) 2008-2012, Anthony Smith
 
-anthonysmith80 'at' gmail.com
+anthonysmith80@gmail.com
+
+This module has been written to enable an `IDL <http://www.ittvis.com/idl/>`_ session to be controlled from within `Python <http://www.python.org/">`_. I was inspired by `pyIDL <http://www.its.caltech.edu/~mmckerns/software.html>`_, which looks great but which I couldn't manage to install. So I wrote my own.
+
+pIDLy works by launching an IDL session as a child application and then passing data between Python and the IDL shell. It's not particularly fast, so not suitable for applications which require huge amounts of data to be passed around with ease. But it should be fine for most applications.
+
+pIDLy requires `NumPy <http://numpy.scipy.org/>`_ and `Pexpect <http://pexpect.sourceforge.net/>`_, but these will (hopefully!) be installed automatically if you follow the instructions below. You also need IDL, of course.
+
+Contributions welcome!
 
 
 Contents
@@ -139,10 +147,9 @@ NB if getting Syntax Errors when passing large arrays to IDL, try using::
 
 Further information is available
 
-* on the `pIDLy web page <http://astronomy.sussex.ac.uk/~anthonys/pidly/>`_
 * from the `Python Package Index <http://pypi.python.org/pypi/pIDLy/>`_
 * from the `GitHub repository <https://github.com/anthonyjsmith/pIDLy>`_
-* from the author: anthonysmith80 'at' gmail.com
+* from the author: anthonysmith80@gmail.com
 
 
 5. Known bugs/issues

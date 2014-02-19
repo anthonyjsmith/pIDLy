@@ -1332,6 +1332,7 @@ def test():
     print "pIDLy", __version__ + ": running full tests."
     print "IDL",
     idl('print,!VERSION')
+    print "pexpect", pexpect.__version__
     print "Showing (Python -> IDL time) / (IDL -> Python time).\n"
 
     import doctest
