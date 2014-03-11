@@ -201,7 +201,7 @@ class IDL(pexpect.spawn):
         # Begin
         if len(arguments) == 0:
             arguments = ('idl',)
-        if not kwargs.has_key('timeout'):
+        if not 'timeout' in kwargs:
             kwargs['timeout'] = None
         pexpect.spawn.__init__(self, *arguments, **kwargs)
         self.delaybeforesend = self.short_delay  # Changed for long commands
@@ -228,11 +228,11 @@ class IDL(pexpect.spawn):
                                                    expression)
 
         # List of commands to execute?
-        if hasattr(expression, '__iter__'):
+        if hasattr(expression, '__iter__') and not isinstance(expression, str):
             # Long assignments are broken down into lists: iterate then return
             # Or can receive a list of commands directly
             output = []
-            print "Sending", len(expression), "commands to IDL:",
+            sys.stdout.write("Sending " + str(len(expression)) + " commands to IDL:")
             sys.stdout.flush()
             for exp in expression:
                 sys.stdout.write(".")
@@ -242,7 +242,7 @@ class IDL(pexpect.spawn):
                     output.append(out)
                 self.delaybeforesend = self.long_delay
             self.delaybeforesend = self.short_delay
-            print "done."
+            print("done.")
             if ret:
                 return ''.join(output)
             else:
@@ -332,13 +332,13 @@ class IDL(pexpect.spawn):
         """Interactive IDL shell. Press ^D to return to Python."""
 
         if show_prompt:
-            print self.idl_prompt,
+            sys.stdout.write(self.idl_prompt)
         sys.stdout.flush()
-        if not kwargs.has_key('escape_character'):
+        if not 'escape_character' in kwargs:
             kwargs['escape_character'] = '\x04'
         pexpect.spawn.interact(self, **kwargs)
         if not _ipython:
-            print ""
+            print("")
     interact.__doc__ += "\n\n        " + pexpect.spawn.interact.__doc__
 
 
@@ -439,9 +439,9 @@ class IDL(pexpect.spawn):
     def __setattr__(self, name, value):
         """Set IDL attribute: idl.x = ..."""
 
-        if self.__dict__.has_key('ready'):
+        if 'ready' in self.__dict__:
             # __init__ has finished
-            if self.__dict__.has_key(name):
+            if name in self.__dict__:
                 pexpect.spawn.__setattr__(self, name, value)
             else:
                 self.ex(name, value)
@@ -472,11 +472,11 @@ class IDL(pexpect.spawn):
                 self.delaybeforesend = self.short_delay
                 return True
             else:
-                raise IDLInputOverflowError, \
-                      "Expression too long for IDL to receive: cannot execute"
+                raise IDLInputOverflowError(
+                      "Expression too long for IDL to receive: cannot execute")
         else:
             if not self.isalive():
-                raise IOError, "IDL session is not alive."
+                raise IOError("IDL session is not alive.")
             return self.sendline(expression)
 
 
@@ -503,11 +503,11 @@ class IDL(pexpect.spawn):
             if ((not isinstance(python_input, numpy.ndarray))
                 and py_in.tolist() != python_input
                 and py_in.dtype.name[0:6] == 'string'):
-                print >> sys.stderr, \
-                    "(!) Conversion to numpy.array has changed input from:"
-                print >> sys.stderr, python_input
-                print >> sys.stderr, "to:"
-                print >> sys.stderr, py_in.tolist()
+                sys.stderr.write(
+                    "(!) Conversion to numpy.array has changed input from:\n")
+                sys.stderr.write(str(python_input) + "\n")
+                sys.stderr.write("to:\n")
+                sys.stderr.write(str(py_in.tolist()) + "\n")
 
             # String format (must have commas between elements)
             if py_in.dtype.name == 'float64':
@@ -546,8 +546,8 @@ class IDL(pexpect.spawn):
                 or len(py_in.flatten()) > self.max_n_elements_code_area):
                 # String too long!  Need to create list of shorter commands
                 if assign_to is None:
-                    raise IDLInputOverflowError, \
-                          "Expression too long for IDL to receive"
+                    raise IDLInputOverflowError(
+                          "Expression too long for IDL to receive")
                 else:
                     idl_input = self._split_idl_assignment(py_in, str_py_in,
                                                            assign_to)
@@ -560,7 +560,7 @@ class IDL(pexpect.spawn):
         to execute in order to assign this value to an IDL variable."""
 
         if assign_to is None:
-            print >>sys.stderr, "(!) No assign_to set."
+            sys.stderr.write("(!) No assign_to set.\n")
 
         idl_input = []
         extend_string = ''
@@ -631,18 +631,18 @@ class IDL(pexpect.spawn):
         elif dtype.name == 'uint64':
             return "ulong64(" + idl_str.replace('L', 'LL') + ")"
         elif dtype.name == 'float8':  # Not a NumPy type?
-            print >> sys.stderr, "Warning: converting 8-bit to 32-bit float."
+            sys.stderr.write("Warning: converting 8-bit to 32-bit float.\n")
             return "float(" + idl_str + ")"
         elif dtype.name == 'float16':  # Not a NumPy type?
-            print >> sys.stderr, "Warning: converting 16-bit to 32-bit float."
+            sys.stderr.write("Warning: converting 16-bit to 32-bit float.\n")
             return "float(" + idl_str + ")"
         elif dtype.name == 'float32':
             return "float(" + idl_str + ")"
         elif dtype.name == 'float64':
             return "double(" + idl_str + ")"
         else:
-            print >> sys.stderr, "(!) Could not convert NumPy dtype", \
-                  dtype.name, "to IDL."
+            sys.stderr.write("(!) Could not convert NumPy dtype " +
+                  dtype.name, " to IDL.\n")
             return
 
 
@@ -689,8 +689,8 @@ class IDL(pexpect.spawn):
 
         if len(idl_input) > self.max_idl_code_area:
             # String too long!  Need to create list of shorter commands
-            raise IDLInputOverflowError, \
-                  "Expression too long for IDL to receive"
+            raise IDLInputOverflowError(
+                  "Expression too long for IDL to receive")
         else:
             return idl_input
 
@@ -742,9 +742,9 @@ class IDL(pexpect.spawn):
                 # 0: waiting for input, 1: output received, 2: IDL exited
                 index = self.expect([self.idl_prompt, '\n', pexpect.EOF])
             except KeyboardInterrupt:
-                print "\npIDLy: KeyboardInterrupt"
+                print("\npIDLy: KeyboardInterrupt")
                 if not _ipython:
-                    print self.before
+                    print(self.before)
                     sys.stdout.flush()
                 self.interact(show_prompt=False)
                 break
@@ -756,10 +756,10 @@ class IDL(pexpect.spawn):
             if new_line:
                 output_lines.append(new_line)
                 if print_output:
-                    print new_line  # Live output while waiting for prompt
+                    print(new_line)  # Live output while waiting for prompt
         if halt or stop:
             if not print_output:  # print output anyway
-                print '\n'.join(output_lines)
+                print('\n'.join(output_lines))
             self.interact()
         return '\n'.join(output_lines)
         
@@ -791,7 +791,7 @@ class IDL(pexpect.spawn):
 
             # Reshape array
             if numpy.product(shape) != value.size:
-                print >> sys.stderr, "(!) Could not reshape array."
+                sys.stderr.write("(!) Could not reshape array.\n")
             else:
                 value = value.reshape(shape)
 
@@ -808,8 +808,8 @@ class IDL(pexpect.spawn):
                 None, 'uint16', 'uint32', 'int64', 'uint64']
             dtype = python_idl_types[idl_type]
             if dtype is None and idl_type != 7:
-                print >> sys.stderr, "(!) Could not convert IDL type " \
-                      + str(idl_type) + " to Python."
+                sys.stderr.write("(!) Could not convert IDL type "
+                      + str(idl_type) + " to Python.")
         else:
             dtype = None
         return dtype
@@ -942,12 +942,13 @@ class TestPidly(unittest.TestCase):
             return time_delta.seconds + time_delta.microseconds / 1000000.
         self.idl.close()
         try:
-            print "%0.5ss/%0.5ss " % (t(self.mid_time - self.start_time),
-                                      t(self.end_time - self.mid_time)),
+            sys.stdout.write("%0.5ss/%0.5ss " % (
+                t(self.mid_time - self.start_time),
+                t(self.end_time - self.mid_time)))
             sys.stdout.flush()
         except TypeError:
             try:
-                print "%0.5ss " % t(self.end_time - self.start_time),
+                sys.stdout.write("%0.5ss " % t(self.end_time - self.start_time))
                 sys.stdout.flush()
             except TypeError:
                 pass
@@ -1221,8 +1222,8 @@ class TestPidly(unittest.TestCase):
                          [numpy.array(x[key]).shape for key in x])
 
     def test_3_3_element_dicts(self):
-        x = [{'a':'ah', 'b':1000L, 'c':0.7}, {'a':'be', 'b':8L, 'c':-6.3},
-             {'a':'x', 'b':0L, 'c':81.}]
+        x = [{'a':'ah', 'b':1000, 'c':0.7}, {'a':'be', 'b':8, 'c':-6.3},
+             {'a':'x', 'b':0, 'c':81.}] # was 1000L, 8L and 0L in python2
         y = self.sendAndReceive(x)
         self.assertEqual(y, x)
         for i, d in enumerate(x):
@@ -1242,8 +1243,8 @@ class TestPidly(unittest.TestCase):
                              [d[key].tolist() for key in d])
         for i, d in enumerate(x):
             for key in d:
-                self.assertEqual(d[key][0].dtype,
-                                 y[i][key][0].dtype)
+                self.assertEqual(numpy.array(d[key]).dtype,
+                                 y[i][key].dtype)
         self.assertEqual(numpy.array(x).shape, numpy.array(y).shape)
 
     def test_4d_int_array(self):
@@ -1329,11 +1330,11 @@ def test():
     else:
         idl = IDL()
 
-    print "pIDLy", __version__ + ": running full tests."
-    print "IDL",
+    print("pIDLy " + __version__ + ": running full tests.")
+    sys.stdout.write("IDL")
     idl('print,!VERSION')
     print "pexpect", pexpect.__version__
-    print "Showing (Python -> IDL time) / (IDL -> Python time).\n"
+    print("Showing (Python -> IDL time) / (IDL -> Python time).\n")
 
     import doctest
     import pidly
