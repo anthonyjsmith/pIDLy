@@ -1,4 +1,4 @@
-"""pIDLy 0.2.5: IDL within Python.
+"""pIDLy 0.2.6: IDL within Python.
 
 Control ITT's IDL (Interactive Data Language) from within Python.
 
@@ -15,7 +15,7 @@ Usage:
 >>> import pidly
 >>> idl = pidly.IDL()
 
->>  print idl.__doc__
+>>  print(idl.__doc__)
 
 Consult the docstrings or README.txt in the source distribution for
 further information.
@@ -42,6 +42,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 """
+from __future__ import print_function
 import sys
 import re
 import weakref
@@ -54,7 +55,7 @@ import pexpect
 
 
 now = datetime.now
-__version__ = '0.2.5'
+__version__ = '0.2.6'
 STR_DELIMITER = '!@#'  # To distinguish items in an array of strings
 try:
     __IPYTHON__
@@ -98,30 +99,30 @@ class IDL(pexpect.spawn):
 
     Or:
         idl = pidly.IDL('/path/to/idl')
-    
+
     Execute commands:
     >>> idl('x = total([1, 1], /int)')
 
     Retrieve values:
-    >>> print idl.ev('x')
+    >>> print(idl.ev('x'))
     2
 
     Or (slightly slower):
-    >>> print idl.x
+    >>> print(idl.x)
     2
 
     Evaluate expressions:
-    >>> print idl.ev('x ^ 2')
+    >>> print(idl.ev('x ^ 2'))
     4
 
     Assign value from Python expression:
     >>> idl.x = 2 + 2
-    >>> print idl.x
+    >>> print(idl.x)
     4
 
     Or:
     >>> idl('x', 2 + 2)
-    >>> print idl.x
+    >>> print(idl.x)
     4
 
     Perform IDL function on Python expression(s):
@@ -136,9 +137,9 @@ class IDL(pexpect.spawn):
 
     With keywords (/L64 -> L64=True or L64=1)
     >>> x = idl.histogram(range(4), binsize=3, L64=True)
-    >>> print x
+    >>> print(x)
     [3 1]
-    >>> print x.dtype
+    >>> print(x.dtype)
     int64
 
     IDL procedure with Python argument(s):
@@ -197,11 +198,11 @@ class IDL(pexpect.spawn):
 
         # Custom IDL prompt
         self.idl_prompt = kwargs.pop('idl_prompt', 'IDL> ')
-        
+
         # Begin
         if len(arguments) == 0:
             arguments = ('idl',)
-        if not 'timeout' in kwargs:
+        if 'timeout' not in kwargs:
             kwargs['timeout'] = None
         pexpect.spawn.__init__(self, *arguments, **kwargs)
         self.delaybeforesend = self.short_delay  # Changed for long commands
@@ -212,6 +213,19 @@ class IDL(pexpect.spawn):
 
         self.ready = True  # For __setattr__
 
+    def close(self):
+        """
+        Close IDL session.
+
+        Try to call IDL exit function - this way you may still be able
+        to terminate IDL if it is a called indirectly through a script.
+        """
+        if self.isalive():
+            try:
+                self.ex('exit', print_output=False, ret=True)
+            except OSError:
+                pass
+        super(IDL, self).close()
 
     def ex(self, expression, assignment_value=None,
            print_output=True, ret=False):
@@ -221,18 +235,18 @@ class IDL(pexpect.spawn):
         assigned to the IDL variable named in expression.
 
         """
-        
+
         # Assign value to expression?
         if assignment_value is not None:
             expression = self._python_to_idl_input(assignment_value,
                                                    expression)
 
         # List of commands to execute?
-        if hasattr(expression, '__iter__') and not isinstance(expression, str):
+        if hasattr(expression, '__iter__') and not isinstance(expression, (str, bytes, bytearray)):
             # Long assignments are broken down into lists: iterate then return
             # Or can receive a list of commands directly
             output = []
-            sys.stdout.write("Sending " + str(len(expression)) + " commands to IDL:")
+            print("Sending", len(expression), "commands to IDL:", end=' ')
             sys.stdout.flush()
             for exp in expression:
                 sys.stdout.write(".")
@@ -316,7 +330,7 @@ class IDL(pexpect.spawn):
                 print_output=False, ret=True).splitlines()
             idl_type = int(idl_type_dims[0])
             idl_dims = numpy.array(
-                ''.join(idl_type_dims[1:]).split()).astype(long)
+                ''.join(idl_type_dims[1:]).split()).astype(int)
             if idl_type == 8:  # Structure
                 self.ex('help,pidly_tmp,/struct,output=pidly_tmp_2',
                         print_output=False)
@@ -332,9 +346,9 @@ class IDL(pexpect.spawn):
         """Interactive IDL shell. Press ^D to return to Python."""
 
         if show_prompt:
-            sys.stdout.write(self.idl_prompt)
+            print(self.idl_prompt, end=' ')
         sys.stdout.flush()
-        if not 'escape_character' in kwargs:
+        if 'escape_character' not in kwargs:
             kwargs['escape_character'] = '\x04'
         pexpect.spawn.interact(self, **kwargs)
         if not _ipython:
@@ -360,7 +374,7 @@ class IDL(pexpect.spawn):
 
     def func(self, name, *args, **kwargs):
         """Evaluate IDL function."""
-        
+
         try:
             string_bits = []
             for i, arg in enumerate(args):
@@ -421,7 +435,7 @@ class IDL(pexpect.spawn):
 
         idl.x: return the value of 'x' from IDL.
         idl.f(x,y,...): return the value of IDL f() of Python variables x,y,...
-        
+
         """
 
         # idl.x
@@ -454,7 +468,7 @@ class IDL(pexpect.spawn):
 
 
     # Sending to IDL
-    
+
 
     def _send_expression_to_idl(self, expression):
         """Send a string to IDL and return the no. of bytes sent (or False)."""
@@ -465,18 +479,17 @@ class IDL(pexpect.spawn):
                 # Long line: need to send it in chunks
                 expression += '\n'
                 for i in range((len(expression) - 1)
-                               / (self.max_sendline + 1) + 1):
+                               // (self.max_sendline + 1) + 1):
                     self.send(expression[(self.max_sendline + 1) * i
                                          : (self.max_sendline + 1) * (i + 1)])
                     self.delaybeforesend = self.long_delay
                 self.delaybeforesend = self.short_delay
                 return True
             else:
-                raise IDLInputOverflowError(
-                      "Expression too long for IDL to receive: cannot execute")
+                raise IDLInputOverflowError("Expression too long for IDL to receive: cannot execute")
         else:
             if not self.isalive():
-                raise IOError("IDL session is not alive.")
+                raise OSError("IDL session is not alive.")
             return self.sendline(expression)
 
 
@@ -502,12 +515,11 @@ class IDL(pexpect.spawn):
             # Display warning if conversion has changed the array values
             if ((not isinstance(python_input, numpy.ndarray))
                 and py_in.tolist() != python_input
-                and py_in.dtype.name[0:6] == 'string'):
-                sys.stderr.write(
-                    "(!) Conversion to numpy.array has changed input from:\n")
-                sys.stderr.write(str(python_input) + "\n")
-                sys.stderr.write("to:\n")
-                sys.stderr.write(str(py_in.tolist()) + "\n")
+                and py_in.dtype.name[0:3] == 'str'):
+                print("(!) Conversion to numpy.array has changed input from:", file=sys.stderr)
+                print(python_input, file=sys.stderr)
+                print("to:", file=sys.stderr)
+                print(py_in.tolist(), file=sys.stderr)
 
             # String format (must have commas between elements)
             if py_in.dtype.name == 'float64':
@@ -516,7 +528,7 @@ class IDL(pexpect.spawn):
                     ','.join(str('%.17e' % s)
                              for s in py_in.flatten().tolist()),
                     ']']).replace(' ', '').replace('e', 'd')
-            elif py_in.dtype.name[0:6] == 'string':
+            elif py_in.dtype.name[0:3] == 'str':
                 str_py_in = str(py_in.flatten().tolist()).replace("', ", "',")
             else:
                 str_py_in = str(py_in.flatten().tolist()).replace(" ", "")
@@ -528,7 +540,7 @@ class IDL(pexpect.spawn):
                 str_py_in_shape = str_py_in
             else:
                 str_py_in_shape = str_py_in[1:-1]  # Remove '[' and ']'
-            
+
             # Dictionary?  Convert to IDL structure
             if ((not hasattr(py_in.tolist(), 'keys')
                  and hasattr(py_in.tolist(), '__iter__')
@@ -546,8 +558,7 @@ class IDL(pexpect.spawn):
                 or len(py_in.flatten()) > self.max_n_elements_code_area):
                 # String too long!  Need to create list of shorter commands
                 if assign_to is None:
-                    raise IDLInputOverflowError(
-                          "Expression too long for IDL to receive")
+                    raise IDLInputOverflowError("Expression too long for IDL to receive")
                 else:
                     idl_input = self._split_idl_assignment(py_in, str_py_in,
                                                            assign_to)
@@ -560,7 +571,7 @@ class IDL(pexpect.spawn):
         to execute in order to assign this value to an IDL variable."""
 
         if assign_to is None:
-            sys.stderr.write("(!) No assign_to set.\n")
+            print("(!) No assign_to set.", file=sys.stderr)
 
         idl_input = []
         extend_string = ''
@@ -602,12 +613,12 @@ class IDL(pexpect.spawn):
 
         return idl_input
 
-        
+
     def _idl_cast_from_dtype(self, dtype, idl_str):
         """Take a NumPy dtype and return an expression to cast an IDL
         expression as appropriate type."""
-        
-        if dtype.name[0:6] == 'string':
+
+        if dtype.name[0:3] == 'str':
             return idl_str
 
         # NaN and Inf
@@ -631,18 +642,18 @@ class IDL(pexpect.spawn):
         elif dtype.name == 'uint64':
             return "ulong64(" + idl_str.replace('L', 'LL') + ")"
         elif dtype.name == 'float8':  # Not a NumPy type?
-            sys.stderr.write("Warning: converting 8-bit to 32-bit float.\n")
+            print("Warning: converting 8-bit to 32-bit float.", file=sys.stderr)
             return "float(" + idl_str + ")"
         elif dtype.name == 'float16':  # Not a NumPy type?
-            sys.stderr.write("Warning: converting 16-bit to 32-bit float.\n")
+            print("Warning: converting 16-bit to 32-bit float.", file=sys.stderr)
             return "float(" + idl_str + ")"
         elif dtype.name == 'float32':
             return "float(" + idl_str + ")"
         elif dtype.name == 'float64':
             return "double(" + idl_str + ")"
         else:
-            sys.stderr.write("(!) Could not convert NumPy dtype " +
-                  dtype.name, " to IDL.\n")
+            print("(!) Could not convert NumPy dtype", \
+                  dtype.name, "to IDL.", file=sys.stderr)
             return
 
 
@@ -689,8 +700,7 @@ class IDL(pexpect.spawn):
 
         if len(idl_input) > self.max_idl_code_area:
             # String too long!  Need to create list of shorter commands
-            raise IDLInputOverflowError(
-                  "Expression too long for IDL to receive")
+            raise IDLInputOverflowError("Expression too long for IDL to receive")
         else:
             return idl_input
 
@@ -698,14 +708,14 @@ class IDL(pexpect.spawn):
     def _python_to_idl_structure_long(self, py_in, assign_to):
         """Given a Python dictionary, or a (simple, 1D) list of dictionaries,
         return a list of commands to assign IDL structure to assign_to."""
-        
+
         if hasattr(py_in, 'keys'):
             n_rows = 1
             py_in_row = py_in
         else:  # List of dictionaries
             n_rows = len(py_in)
             py_in_row = py_in[0]
-            
+
         # Make one row
         struct_fields = []
         for key in py_in_row:
@@ -726,7 +736,7 @@ class IDL(pexpect.spawn):
                                      + ','.join(struct_fields) + '}]')
 
         return idl_input
-        
+
 
     # Receiving from IDL
 
@@ -748,7 +758,10 @@ class IDL(pexpect.spawn):
                     sys.stdout.flush()
                 self.interact(show_prompt=False)
                 break
-            new_line = self.before.replace('\r', '')
+            if sys.version_info.major < 3:
+                new_line = self.before.replace('\r', '')
+            else:
+                new_line = self.before.decode().replace('\r', '')
             if new_line.startswith('% Stop encountered:'):
                 stop = True
             if new_line.startswith('% Execution halted at:'):
@@ -762,7 +775,7 @@ class IDL(pexpect.spawn):
                 print('\n'.join(output_lines))
             self.interact()
         return '\n'.join(output_lines)
-        
+
 
     def _idl_output_to_python(self, idl_output, idl_type, idl_dims):
         """Take output from IDL print statement and return value."""
@@ -791,7 +804,7 @@ class IDL(pexpect.spawn):
 
             # Reshape array
             if numpy.product(shape) != value.size:
-                sys.stderr.write("(!) Could not reshape array.\n")
+                print("(!) Could not reshape array.", file=sys.stderr)
             else:
                 value = value.reshape(shape)
 
@@ -808,13 +821,13 @@ class IDL(pexpect.spawn):
                 None, 'uint16', 'uint32', 'int64', 'uint64']
             dtype = python_idl_types[idl_type]
             if dtype is None and idl_type != 7:
-                sys.stderr.write("(!) Could not convert IDL type "
-                      + str(idl_type) + " to Python.")
+                print("(!) Could not convert IDL type " \
+                      + str(idl_type) + " to Python.", file=sys.stderr)
         else:
             dtype = None
         return dtype
 
-    
+
     def _shape_from_idl_dims(self, idl_dims):
         """Convert IDL dimensions to numpy shape."""
 
@@ -872,7 +885,7 @@ class IDL(pexpect.spawn):
                 dict_row[name.lower()] = self._idl_output_to_python(
                     idl_out, idl_type, idl_dims)
             dict_list.append(dict_row)
-            
+
         if len(dict_list) == 1:
             return dict_list[0]
         else:
@@ -919,7 +932,7 @@ class IDL(pexpect.spawn):
 
         try:
             dims = re.search('(?<=Array\[).*\]', struct_help).group()[:-1]
-            idl_dims = numpy.array(dims.split(',')).astype(long)
+            idl_dims = numpy.array(dims.split(',')).astype(int)
             return idl_dims
         except AttributeError:
             return [0]
@@ -927,7 +940,7 @@ class IDL(pexpect.spawn):
 
 class TestPidly(unittest.TestCase):
     """Unit tests for pIDLy."""
-    
+
     def setUp(self):
         if len(sys.argv) > 1 and sys.argv[0].endswith('test_pidly.py'):
             self.idl = IDL(sys.argv[1])
@@ -942,13 +955,12 @@ class TestPidly(unittest.TestCase):
             return time_delta.seconds + time_delta.microseconds / 1000000.
         self.idl.close()
         try:
-            sys.stdout.write("%0.5ss/%0.5ss " % (
-                t(self.mid_time - self.start_time),
-                t(self.end_time - self.mid_time)))
+            print("%0.5ss/%0.5ss " % (t(self.mid_time - self.start_time),
+                                      t(self.end_time - self.mid_time)), end=' ')
             sys.stdout.flush()
         except TypeError:
             try:
-                sys.stdout.write("%0.5ss " % t(self.end_time - self.start_time))
+                print("%0.5ss " % t(self.end_time - self.start_time), end=' ')
                 sys.stdout.flush()
             except TypeError:
                 pass
@@ -964,7 +976,8 @@ class TestPidly(unittest.TestCase):
 
     def test_idl_dead(self):
         self.idl('exit')
-        self.assertRaises(IOError, self.idl, 'print, 1')
+        with self.assertRaises(OSError):
+            self.idl('print, 1')
 
     def test_longest_line(self):
         s = ["x='"]
@@ -1006,7 +1019,7 @@ class TestPidly(unittest.TestCase):
             y[i] = self.idl.sin(x[i])
         self.end_time = now()
         self.assertEqual(y.tolist(), numpy.sin(x).tolist())
-        
+
     def test_20_function_calls_explicit(self):
         x = numpy.random.random(20)
         y = numpy.zeros(20)
@@ -1015,7 +1028,7 @@ class TestPidly(unittest.TestCase):
             y[i] = self.idl.func('sin', x[i])
         self.end_time = now()
         self.assertEqual(y.tolist(), numpy.sin(x).tolist())
-        
+
     def test_20_function_calls_really_explicit(self):
         x = numpy.random.random()
         self.idl.x = x
@@ -1046,7 +1059,7 @@ class TestPidly(unittest.TestCase):
         y = self.idl.total(x, double=True)
         self.end_time = now()
         self.assertEqual(y, sum(x))
-        
+
     def test_single_integer(self):
         x = 2
         y = self.sendAndReceive(x)
@@ -1058,7 +1071,7 @@ class TestPidly(unittest.TestCase):
         x = [2]
         y = self.sendAndReceive(x)
         self.assertEqual(y.tolist(), x)
-        self.assertEqual(numpy.array(x).dtype, y.dtype)        
+        self.assertEqual(numpy.array(x).dtype, y.dtype)
         self.assertEqual(numpy.array(x).shape, y.shape)
 
     def test_single_float(self):
@@ -1086,17 +1099,17 @@ class TestPidly(unittest.TestCase):
         x = numpy.inf
         y = self.sendAndReceive(x)
         self.assertEqual(y, x)
-        self.assert_(numpy.isinf(x))
-        self.assert_(numpy.isinf(y))
+        self.assertTrue(numpy.isinf(x))
+        self.assertTrue(numpy.isinf(y))
         self.assertEqual(numpy.array(x).shape, y.shape)
         self.assertEqual(numpy.array(x).dtype, y.dtype)
-        
+
     def test_infinity_neg(self):
         x = -numpy.inf
         y = self.sendAndReceive(x)
         self.assertEqual(y, x)
-        self.assert_(numpy.isneginf(x))
-        self.assert_(numpy.isneginf(y))
+        self.assertTrue(numpy.isneginf(x))
+        self.assertTrue(numpy.isneginf(y))
         self.assertEqual(numpy.array(x).shape, y.shape)
         self.assertEqual(numpy.array(x).dtype, y.dtype)
 
@@ -1104,8 +1117,8 @@ class TestPidly(unittest.TestCase):
         x = numpy.nan
         y = self.sendAndReceive(x)
         # NB NaN != NaN
-        self.assert_(numpy.isnan(x))
-        self.assert_(numpy.isnan(y))
+        self.assertTrue(numpy.isnan(x))
+        self.assertTrue(numpy.isnan(y))
         self.assertEqual(numpy.array(x).shape, y.shape)
         self.assertEqual(numpy.array(x).dtype, y.dtype)
 
@@ -1113,8 +1126,8 @@ class TestPidly(unittest.TestCase):
         x = [1.2, numpy.nan, numpy.inf, -numpy.inf, 3, numpy.nan, 4]
         y = self.sendAndReceive(x)
         # NB NaN != NaN
-        self.assert_(all(numpy.isnan([x[1], x[5]])))
-        self.assert_(all(numpy.isnan([y[1], y[5]])))
+        self.assertTrue(all(numpy.isnan([x[1], x[5]])))
+        self.assertTrue(all(numpy.isnan([y[1], y[5]])))
         self.assertEqual(x[0::2], y.tolist()[0::2])
         self.assertEqual(x[3], y[3])
         self.assertEqual(numpy.array(x).shape, y.shape)
@@ -1137,6 +1150,7 @@ class TestPidly(unittest.TestCase):
     def test_list_of_strings(self):
         x = [' 5 2  5k 2', '4  33 55 1 ', ' 4 ', '2', '  3   2']
         y = self.sendAndReceive(x)
+
         self.assertEqual(y.tolist(), x)
         self.assertEqual(numpy.array(x).dtype, y.dtype)
         self.assertEqual(numpy.array(x).shape, y.shape)
@@ -1148,7 +1162,7 @@ class TestPidly(unittest.TestCase):
         self.assertEqual(y.tolist(), x)
         self.assertEqual(numpy.array(x).dtype, y.dtype)
         self.assertEqual(numpy.array(x).shape, y.shape)
-        
+
     def test_long_integer(self):
         x = 25525252525525
         y = self.sendAndReceive(x)
@@ -1214,16 +1228,17 @@ class TestPidly(unittest.TestCase):
                    [['', 'f'], ['gs', 'a']]],
              'c': 5, 'd': [1, 5, 2.3]}
         y = self.sendAndReceive(x)
+        self.assertEqual(sorted(x.keys()), sorted(y.keys()))
         self.assertEqual([y[key].tolist() for key in y],
-                         [numpy.array(x[key]).tolist() for key in x])
+                         [numpy.array(x[key]).tolist() for key in y])
         self.assertEqual([y[key].dtype for key in y],
-                         [numpy.array(x[key]).dtype for key in x])
+                         [numpy.array(x[key]).dtype for key in y])
         self.assertEqual([y[key].shape for key in y],
-                         [numpy.array(x[key]).shape for key in x])
+                         [numpy.array(x[key]).shape for key in y])
 
     def test_3_3_element_dicts(self):
         x = [{'a':'ah', 'b':1000, 'c':0.7}, {'a':'be', 'b':8, 'c':-6.3},
-             {'a':'x', 'b':0, 'c':81.}] # was 1000L, 8L and 0L in python2
+             {'a':'x', 'b':0, 'c':81.}]
         y = self.sendAndReceive(x)
         self.assertEqual(y, x)
         for i, d in enumerate(x):
@@ -1235,7 +1250,7 @@ class TestPidly(unittest.TestCase):
     def test_100_dicts_float32_double_string(self):
         x = [{'a':numpy.random.random(2).astype('float32'),
               'b':numpy.random.random(1),
-              'c':(numpy.random.random(1)*100).astype('string')}
+              'c':(numpy.random.random(1)*100).astype('str')}
              for i in range(100)]
         y = self.sendAndReceive(x)
         for i, d in enumerate(x):
@@ -1243,9 +1258,10 @@ class TestPidly(unittest.TestCase):
                              [d[key].tolist() for key in d])
         for i, d in enumerate(x):
             for key in d:
-                self.assertEqual(numpy.array(d[key]).dtype,
-                                 y[i][key].dtype)
+                self.assertEqual(d[key][0].dtype,
+                                 y[i][key][0].dtype)
         self.assertEqual(numpy.array(x).shape, numpy.array(y).shape)
+
 
     def test_4d_int_array(self):
         x = numpy.arange(2*3*4*5).reshape(2,3,4,5)
@@ -1300,7 +1316,7 @@ class TestPidly(unittest.TestCase):
         x = numpy.random.random(20000)
         y = self.sendAndReceive(x)
         # Don't print all 20000 floats if fails!
-        self.assert_(y.tolist() == x.tolist())
+        self.assertTrue(y.tolist() == x.tolist())
         self.assertEqual(x.dtype, y.dtype)
         self.assertEqual(y.shape, x.shape)
 
@@ -1312,12 +1328,12 @@ class TestPidly(unittest.TestCase):
         for i in range(n):
             self.idl('x[' + str(i) + ']', x[i])
             if (i + 1) % 100 == 0:
-                print (i + 1),
+                print((i + 1), end=' ')
                 sys.stdout.flush()
         self.mid_time = now()
         y = self.idl.x
         self.end_time = now()
-        self.assert_(y.tolist() == x.tolist())
+        self.assertTrue(y.tolist() == x.tolist())
         self.assertEqual(y.dtype, x.dtype)
         self.assertEqual(y.shape, x.shape)
 
@@ -1330,10 +1346,10 @@ def test():
     else:
         idl = IDL()
 
-    print("pIDLy " + __version__ + ": running full tests.")
-    sys.stdout.write("IDL")
+    print("pIDLy", __version__ + ": running full tests.")
+    print("IDL", end=' ')
     idl('print,!VERSION')
-    print "pexpect", pexpect.__version__
+    print("pexpect", pexpect.__version__)
     print("Showing (Python -> IDL time) / (IDL -> Python time).\n")
 
     import doctest
@@ -1346,4 +1362,3 @@ def test():
 
 if __name__ == "__main__":
     test()
-

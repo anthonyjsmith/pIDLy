@@ -6,7 +6,7 @@ pIDLy: IDL within Python
 Control ITT's IDL (Interactive Data Language) from within Python.
 -----------------------------------------------------------------
 
-Version 0.2.5
+Version 0.2.6
 
 Copyright (c) 2008-2014, Anthony Smith
 
@@ -48,8 +48,8 @@ Also required:
 
 This version tested on 
 
-* Mac OS X with IDL 7.1.1 and Python 2.7.2
-* Linux with IDL 8.0 and Python 2.6.2
+* Mac OS X with IDL 7.1.1 and Python 3.4.1
+* Mac OS X with IDL 7.1.1 and Python 2.7.5
 
 
 2. Installation
@@ -177,6 +177,11 @@ Further information is available
 
 7. Release history
 ==================
+
+Version 0.2.6, 4 Aug 2014
+-------------------------
+
+* Python3 compatible version (with thanks to Alexander Heger)
 
 Version 0.2.5, 19 Feb 2014
 --------------------------
