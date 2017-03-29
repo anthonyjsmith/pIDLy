@@ -277,7 +277,7 @@ class IDL(pexpect.spawn):
                 return idl_output
 
     def get_from_save(self, names):
-        """Get values in input list names
+        """Get values for a list of names
 
         Use save command in IDL to save arrays/structure into file and
         use idlsave package to read it into python objects
