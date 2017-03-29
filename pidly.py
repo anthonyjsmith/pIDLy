@@ -48,6 +48,9 @@ import re
 import weakref
 import atexit
 import unittest
+import tempfile
+import idlsave
+import os
 from datetime import datetime
 
 import numpy
@@ -195,7 +198,8 @@ class IDL(pexpect.spawn):
         # (Was 331 on IDL 6.x and 7[?], but 249 on 7.1.1)
         self.max_n_elements_code_area = kwargs.pop('max_n_elements_code_area',
                                                    249)
-
+        # temp dir for get_from_save
+        self._cache_dir=kwargs.get("cache_dir")
         # Custom IDL prompt
         self.idl_prompt = kwargs.pop('idl_prompt', 'IDL> ')
 
@@ -271,6 +275,26 @@ class IDL(pexpect.spawn):
             # Return IDL output
             if ret and idl_output:
                 return idl_output
+
+    def get_from_save(self, names):
+        """Get values in input list names
+
+        Use save command in IDL to save arrays/structure into file and
+        use idlsave package to read it into python objects
+        this will save a lot of time when handling large array
+        """
+        if self._cache_dir is None:
+            self._cache_dir=tempfile.mkdtemp()
+        else:
+            os.makedirs(self._cache_dir, exist_ok=True)
+        valuelist = self.variables()
+        for eachname in names:
+            if eachname.upper() not in valuelist:
+                raise NameError("name {} not in idl variable list".format(eachname))
+        savePath = os.path.join(self._cache_dir, 'pidly.sav')
+        todoStr = "save," + ",".join(names) + ",file='{}'".format(savePath)
+        self.ex(todoStr)
+        return idlsave.read(savePath, verbose=False)
 
 
     def ev(self, expression, print_output=True):
@@ -942,7 +966,7 @@ class TestPidly(unittest.TestCase):
     """Unit tests for pIDLy."""
 
     def setUp(self):
-        if len(sys.argv) > 1 and sys.argv[0].endswith('test_pidly.py'):
+        if len(sys.argv) > 1 and sys.argv[0].endswith('pidly.py'):
             self.idl = IDL(sys.argv[1])
         else:
             self.idl = IDL()
@@ -1336,6 +1360,19 @@ class TestPidly(unittest.TestCase):
         self.assertTrue(y.tolist() == x.tolist())
         self.assertEqual(y.dtype, x.dtype)
         self.assertEqual(y.shape, x.shape)
+
+    def test_get_from_save(self):
+        n=999999
+        seed=1
+        self.idl('y = randomu({}, {})'.format(seed, n))
+        self.start_time = now()
+        y_from_ev = self.idl.y
+        self.mid_time = now()
+        y_from_ev_time = now()-self.start_time
+        self.end_time = now()
+        y_from_get_from_save = self.idl.get_from_save(['y'])
+        y_from_get_from_save_time = now()-self.start_time
+
 
 
 def test():
