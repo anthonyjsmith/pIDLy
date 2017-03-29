@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='pIDLy',
-      version='0.2.7',
+      version='0.2.6',
       description='IDL within Python',
       long_description='Control ITT\'s IDL (Interactive Data Language) from within Python',
       author='Anthony Smith',

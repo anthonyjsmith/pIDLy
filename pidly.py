@@ -1368,10 +1368,8 @@ class TestPidly(unittest.TestCase):
         self.start_time = now()
         y_from_ev = self.idl.y
         self.mid_time = now()
-        y_from_ev_time = now()-self.start_time
-        self.end_time = now()
         y_from_get_from_save = self.idl.get_from_save(['y'])
-        y_from_get_from_save_time = now()-self.start_time
+        self.end_time = now()
 
 
 
