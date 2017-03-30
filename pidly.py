@@ -1425,7 +1425,7 @@ class TestPidly(unittest.TestCase):
 def test():
     """Run full tests on pIDLy."""
 
-    if len(sys.argv) > 1 and sys.argv[0].endswith('test_pidly.py'):
+    if len(sys.argv) > 1 and sys.argv[0].endswith('pidly.py'):
         idl = IDL(sys.argv[1])
     else:
         idl = IDL()
