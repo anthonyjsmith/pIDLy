@@ -1441,10 +1441,6 @@ def test():
 
     suite = unittest.TestLoader().loadTestsFromTestCase(TestPidly)
     suite.addTest(doctest.DocTestSuite(pidly))
-    #suite = unittest.TestSuite()
-    #suite.addTest(TestPidly("test_ev_with_cache"))
-    #suite.addTest(TestPidly("test_ev_list"))
-    #suite.addTest(TestPidly("test_ev_list_with_cache"))
     unittest.TextTestRunner(verbosity=2).run(suite)
 
 
