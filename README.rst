@@ -92,16 +92,15 @@ Evaluate expressions::
  >>> print idl.ev('x ^ 2')
  4
 
-Handle large array and get list of variable:
+Use cache (IDL save) to handle large arrays::
  >>> idl('x=[1,2,3,4,5,6]')
- >>> idl('y=[1,2,3,4,5,6]')
  >>> print(idl.ev('x', use_cache=True))
  [1 2 3 4 5 6]
+
+Transfer a list of IDL variables, using cache::
+ >>> idl('y=[1,2,3,4,5,6]')
  >>> print(idl.ev_list(['x','y'], use_cache=True))
  {'x': array([1, 2, 3, 4, 5, 6], dtype=int16), 'y': array([1, 2, 3, 4, 5, 6], dtype=int16)}
-
-when have ``use_cache=True``, pIDLy will save the variable name(s) into a file and load the file in python, thus saving a lot of time. The input should only be (list of ) variable name, no expression like 'x^2' is allowed when use cache.
-
 
 Assign value from Python expression::
  >>> idl.x = 2 + 2
@@ -188,6 +187,11 @@ Further information is available
 
 7. Release history
 ==================
+
+Version x.x.x
+-------------
+
+* Add use_cache option to transfer data using IDL save (with thanks to Fmajor)
 
 Version 0.2.6, 4 Aug 2014
 -------------------------
