@@ -50,6 +50,7 @@ import atexit
 import unittest
 import tempfile
 import os
+import errno
 from datetime import datetime
 
 import numpy
@@ -124,8 +125,11 @@ class IDL(pexpect.spawn):
 
     Transfer a list of IDL variables, using cache:
     >>> idl('y=[1,2,3,4,5,6]')
-    >>> print(idl.ev_list(['x','y'], use_cache=True))
-    {'x': array([1, 2, 3, 4, 5, 6], dtype=int16), 'y': array([1, 2, 3, 4, 5, 6], dtype=int16)}
+    >>> xy = idl.ev_list(['x','y'], use_cache=True)
+    >>> print(list(xy.keys()))
+    ['y', 'x']
+    >>> print(xy['x'])
+    [1 2 3 4 5 6]
 
     Assign value from Python expression:
     >>> idl.x = 2 + 2
@@ -228,6 +232,7 @@ class IDL(pexpect.spawn):
 
         self.ready = True  # For __setattr__
 
+
     def close(self):
         """
         Close IDL session.
@@ -241,6 +246,7 @@ class IDL(pexpect.spawn):
             except OSError:
                 pass
         super(IDL, self).close()
+
 
     def ex(self, expression, assignment_value=None,
            print_output=True, ret=False):
@@ -287,6 +293,7 @@ class IDL(pexpect.spawn):
             if ret and idl_output:
                 return idl_output
 
+
     def ev(self, expression, print_output=True, use_cache=None):
         """Return the value of an IDL expression as a numpy.ndarray."""
 
@@ -297,9 +304,10 @@ class IDL(pexpect.spawn):
         if use_cache is None:
             use_cache = self.use_cache
         if use_cache:
-            return self._get_from_save('pidly_tmp')['pidly_tmp']
+            return self._get_from_save(['pidly_tmp'])['pidly_tmp']
         else:
             return self._get_from_print()
+
 
     def ev_list(self, names, print_output=True, use_cache=None):
         """Return a dictionary containing values of IDL variables in list names."""
@@ -314,88 +322,6 @@ class IDL(pexpect.spawn):
             for eachname in names:
                 result[eachname] = self.ev(eachname, print_output=print_output)
             return result
-
-    def _get_from_save(self, names):
-        """Get values for a list of names.
-
-        Use save command in IDL to save arrays/structure into file and use
-        readsav to read it into python objects. This will save a lot of time
-        when handling large arrays.
-        """
-        if self._cache_dir is None:
-            self._cache_dir=tempfile.mkdtemp()
-        else:
-            os.makedirs(self._cache_dir, exist_ok=True)
-        valuelist = self.variables()
-        for eachname in names:
-            if eachname.upper() not in valuelist:
-                raise NameError("name {} not in idl variable list".format(eachname))
-        savePath = os.path.join(self._cache_dir, 'pidly.sav')
-        todoStr = "save," + ",".join(names) + ",file='{}'".format(savePath)
-        self.ex(todoStr)
-        return idlio.readsav(savePath)
-
-    def _get_from_print():
-        # Get IDL's string representation of expression
-        # Special treatment of arrays of type string (type == 7)
-        # Floats/doubles printed with appropriate (or too much) precision
-        idl_output = self.ex(
-            # Arrays of strings
-            'if size(pidly_tmp,/type) eq 7 and n_elements(pidly_tmp) gt 1 '
-            + 'then print,strjoin(reform(pidly_tmp,n_elements(pidly_tmp)),'
-            + '\'' + STR_DELIMITER + '\') '
-            # Structures
-            + 'else if n_elements(pidly_tmp) gt 0 '
-            + 'and size(pidly_tmp,/type) eq 8 then '
-            + 'for i = 0, n_elements(pidly_tmp) - 1 do begin'
-            + '  print, "{" & '
-            + '  for j = 0, n_tags(pidly_tmp) - 1 do '
-            + '    if size(pidly_tmp[i].(j),/type) eq 5 then '
-            + '      print,reform(pidly_tmp[i].(j), '
-            + '        n_elements(pidly_tmp[i].(j))), format="(E26.18)" '
-            + '    else if size(pidly_tmp[i].(j),/type) eq 4 then '
-            + '      print,reform(pidly_tmp[i].(j),'
-            + '         n_elements(pidly_tmp[i].(j))), format="(E19.11)" '
-            + '    else if size(pidly_tmp[i].(j),/type) eq 7 '
-            + '      and n_elements(pidly_tmp[i].(j)) gt 1 then '
-            + '      print,strjoin(reform(pidly_tmp[i].(j),'
-            + '                    n_elements(pidly_tmp[i].(j))),'
-            + '      \'' + STR_DELIMITER + '\') '
-            + '    else print, reform(pidly_tmp[i].(j),'
-            + '         n_elements(pidly_tmp[i].(j))) & '
-            + '  print, "}" &'
-            + '  endfor '
-            # Doubles
-            + 'else if n_elements(pidly_tmp) gt 0 '
-            + 'and size(pidly_tmp,/type) eq 5 then print,reform(pidly_tmp,'
-            + 'n_elements(pidly_tmp)), format="(E26.18)" '
-            # Floats
-            + 'else if n_elements(pidly_tmp) gt 0 '
-            + 'and size(pidly_tmp,/type) eq 4 then print,reform(pidly_tmp,'
-            + 'n_elements(pidly_tmp)), format="(E19.11)" '
-            # Other
-            + 'else if n_elements(pidly_tmp) gt 0 then print,reform(pidly_tmp,'
-            + 'n_elements(pidly_tmp))',
-            print_output=False, ret=True)
-
-        # Parse this string into a python variable
-        if idl_output:
-            idl_type_dims = self.ex(
-                'print,size(pidly_tmp,/type) & '
-                + 'print,size(pidly_tmp,/dimensions)',
-                print_output=False, ret=True).splitlines()
-            idl_type = int(idl_type_dims[0])
-            idl_dims = numpy.array(
-                ''.join(idl_type_dims[1:]).split()).astype(int)
-            if idl_type == 8:  # Structure
-                self.ex('help,pidly_tmp,/struct,output=pidly_tmp_2',
-                        print_output=False)
-                idl_struct = self.ev('pidly_tmp_2', use_cache=False).tolist()
-                #idl_output = ''.join(['{', idl_output, '}'])
-                return self._idl_struct_to_python(idl_output, idl_struct)
-            else:
-                return self._idl_output_to_python(idl_output, idl_type,
-                                                  idl_dims)
 
 
     def interact(self, show_prompt=True, **kwargs):
@@ -795,6 +721,98 @@ class IDL(pexpect.spawn):
 
 
     # Receiving from IDL
+
+
+    def _get_from_save(self, names):
+        """Get values for a list of names.
+
+        Use save command in IDL to save arrays/structure into file and use
+        readsav to read it into python objects. This will save a lot of time
+        when handling large arrays.
+        """
+        if self._cache_dir is None:
+            self._cache_dir=tempfile.mkdtemp()
+        else:
+            if sys.version_info.major < 3:
+                try:
+                    os.makedirs(self._cache_dir)
+                except OSError as e:
+                    if e.errno != errno.EEXIST:
+                        raise
+            else:
+                os.makedirs(self._cache_dir, exist_ok=True)
+        if names != ['pidly_tmp']:
+            valuelist = self.variables()
+            for eachname in names:
+                if eachname.upper() not in valuelist:
+                    raise NameError("name {} not in idl variable list".format(eachname))
+        savePath = os.path.join(self._cache_dir, 'pidly.sav')
+        todoStr = "save," + ",".join(names) + ",file='{}'".format(savePath)
+        self.ex(todoStr)
+        return idlio.readsav(savePath)
+
+
+    def _get_from_print(self):
+        """Get IDL's string representation of expression."""
+        # Special treatment of arrays of type string (type == 7)
+        # Floats/doubles printed with appropriate (or too much) precision
+        idl_output = self.ex(
+            # Arrays of strings
+            'if size(pidly_tmp,/type) eq 7 and n_elements(pidly_tmp) gt 1 '
+            + 'then print,strjoin(reform(pidly_tmp,n_elements(pidly_tmp)),'
+            + '\'' + STR_DELIMITER + '\') '
+            # Structures
+            + 'else if n_elements(pidly_tmp) gt 0 '
+            + 'and size(pidly_tmp,/type) eq 8 then '
+            + 'for i = 0, n_elements(pidly_tmp) - 1 do begin'
+            + '  print, "{" & '
+            + '  for j = 0, n_tags(pidly_tmp) - 1 do '
+            + '    if size(pidly_tmp[i].(j),/type) eq 5 then '
+            + '      print,reform(pidly_tmp[i].(j), '
+            + '        n_elements(pidly_tmp[i].(j))), format="(E26.18)" '
+            + '    else if size(pidly_tmp[i].(j),/type) eq 4 then '
+            + '      print,reform(pidly_tmp[i].(j),'
+            + '         n_elements(pidly_tmp[i].(j))), format="(E19.11)" '
+            + '    else if size(pidly_tmp[i].(j),/type) eq 7 '
+            + '      and n_elements(pidly_tmp[i].(j)) gt 1 then '
+            + '      print,strjoin(reform(pidly_tmp[i].(j),'
+            + '                    n_elements(pidly_tmp[i].(j))),'
+            + '      \'' + STR_DELIMITER + '\') '
+            + '    else print, reform(pidly_tmp[i].(j),'
+            + '         n_elements(pidly_tmp[i].(j))) & '
+            + '  print, "}" &'
+            + '  endfor '
+            # Doubles
+            + 'else if n_elements(pidly_tmp) gt 0 '
+            + 'and size(pidly_tmp,/type) eq 5 then print,reform(pidly_tmp,'
+            + 'n_elements(pidly_tmp)), format="(E26.18)" '
+            # Floats
+            + 'else if n_elements(pidly_tmp) gt 0 '
+            + 'and size(pidly_tmp,/type) eq 4 then print,reform(pidly_tmp,'
+            + 'n_elements(pidly_tmp)), format="(E19.11)" '
+            # Other
+            + 'else if n_elements(pidly_tmp) gt 0 then print,reform(pidly_tmp,'
+            + 'n_elements(pidly_tmp))',
+            print_output=False, ret=True)
+
+        # Parse this string into a python variable
+        if idl_output:
+            idl_type_dims = self.ex(
+                'print,size(pidly_tmp,/type) & '
+                + 'print,size(pidly_tmp,/dimensions)',
+                print_output=False, ret=True).splitlines()
+            idl_type = int(idl_type_dims[0])
+            idl_dims = numpy.array(
+                ''.join(idl_type_dims[1:]).split()).astype(int)
+            if idl_type == 8:  # Structure
+                self.ex('help,pidly_tmp,/struct,output=pidly_tmp_2',
+                        print_output=False)
+                idl_struct = self.ev('pidly_tmp_2', use_cache=False).tolist()
+                #idl_output = ''.join(['{', idl_output, '}'])
+                return self._idl_struct_to_python(idl_output, idl_struct)
+            else:
+                return self._idl_output_to_python(idl_output, idl_type,
+                                                  idl_dims)
 
 
     def _wait_for_prompt(self, print_output=False):
@@ -1394,8 +1412,8 @@ class TestPidly(unittest.TestCase):
         self.assertEqual(y.shape, x.shape)
 
     def test_ev_with_cache(self):
-        n=299999
-        seed=1
+        n = 5000
+        seed = 1
         self.idl('y = randomu({}, {})'.format(seed, n))
         self.start_time = now()
         y_from_ev = self.idl.y
@@ -1406,8 +1424,8 @@ class TestPidly(unittest.TestCase):
         self.assertEqual(y_from_ev_cache.shape, (n,))
 
     def test_ev_list(self):
-        n=299999
-        seed=1
+        n = 5000
+        seed = 1
         self.idl('x = randomu({}, {})'.format(seed, n))
         self.idl('y = randomu({}, {})'.format(seed, n))
         self.start_time = now()
@@ -1423,14 +1441,14 @@ class TestPidly(unittest.TestCase):
         self.assertEqual(xy_from_ev_list['y'].shape, (n,))
 
     def test_ev_list_with_cache(self):
-        n=299999
-        seed=1
+        n = 5000
+        seed = 1
         self.idl('x = randomu({}, {})'.format(seed, n))
         self.idl('y = randomu({}, {})'.format(seed, n))
         self.start_time = now()
         xy_from_ev_list = self.idl.ev_list(['x','y'])
         self.mid_time = now()
-        self.idl.use_cache=True
+        self.idl.use_cache = True
         xy_from_ev_list_cache = self.idl.ev_list(['x','y'])
         self.end_time = now()
         # Don't print all values if fails!
@@ -1441,6 +1459,7 @@ class TestPidly(unittest.TestCase):
 
 def test():
     """Run full tests on pIDLy."""
+    # Use python pidly.py or python3 pidly.py.
 
     if len(sys.argv) > 1 and sys.argv[0].endswith('pidly.py'):
         idl = IDL(sys.argv[1])

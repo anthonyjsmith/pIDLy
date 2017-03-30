@@ -99,8 +99,11 @@ Use cache (IDL save) to handle large arrays::
 
 Transfer a list of IDL variables, using cache::
  >>> idl('y=[1,2,3,4,5,6]')
- >>> print(idl.ev_list(['x','y'], use_cache=True))
- {'x': array([1, 2, 3, 4, 5, 6], dtype=int16), 'y': array([1, 2, 3, 4, 5, 6], dtype=int16)}
+ >>> xy = idl.ev_list(['x','y'], use_cache=True)
+ >>> print(list(xy.keys()))
+ ['y', 'x']
+ >>> print(xy['x'])
+ [1 2 3 4 5 6]
 
 Assign value from Python expression::
  >>> idl.x = 2 + 2
