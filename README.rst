@@ -100,7 +100,7 @@ Handle large array and get list of variable:
  >>> print(idl.ev_list(['x','y'], use_cache=True))
  {'x': array([1, 2, 3, 4, 5, 6], dtype=int16), 'y': array([1, 2, 3, 4, 5, 6], dtype=int16)}
 
-when have `use_cache=True`, pIDLy will save the variable name(s) into a file and load the file in python, thus saving a lot of time. The input should only be (list of ) variable name, no expression like 'x^2' is allowed when use cache.
+when have ``use_cache=True``, pIDLy will save the variable name(s) into a file and load the file in python, thus saving a lot of time. The input should only be (list of ) variable name, no expression like 'x^2' is allowed when use cache.
 
 
 Assign value from Python expression::
