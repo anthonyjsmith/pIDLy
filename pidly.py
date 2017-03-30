@@ -181,6 +181,8 @@ class IDL(pexpect.spawn):
         self.short_delay = kwargs.pop('short_delay', 0)
         # As small as possible! (try 0.014)
         self.long_delay = kwargs.pop('long_delay', 0.02)
+        # temp dir for get_from_save
+        self._cache_dir=kwargs.pop("cache_dir", None)
 
         # There are limits to how data may be passed to IDL:
         # max_sendline is the number of bytes that may be sent in one line
@@ -198,8 +200,6 @@ class IDL(pexpect.spawn):
         # (Was 331 on IDL 6.x and 7[?], but 249 on 7.1.1)
         self.max_n_elements_code_area = kwargs.pop('max_n_elements_code_area',
                                                    249)
-        # temp dir for get_from_save
-        self._cache_dir=kwargs.get("cache_dir")
         # Custom IDL prompt
         self.idl_prompt = kwargs.pop('idl_prompt', 'IDL> ')
 
