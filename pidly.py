@@ -118,6 +118,15 @@ class IDL(pexpect.spawn):
     >>> print(idl.ev('x ^ 2'))
     4
 
+    Handle large array and get list of variable:
+    >>> idl('x=[1,2,3,4,5,6]')
+    >>> idl('y=[1,2,3,4,5,6]')
+    >>> print(idl.ev('x', use_cache=True))
+    [1 2 3 4 5 6]
+    >>> print(idl.ev_list(['x','y'], use_cache=True))
+    {'x': array([1, 2, 3, 4, 5, 6], dtype=int16), 'y': array([1, 2, 3, 4, 5, 6], dtype=int16)}
+
+
     Assign value from Python expression:
     >>> idl.x = 2 + 2
     >>> print(idl.x)
