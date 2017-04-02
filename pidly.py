@@ -1,4 +1,4 @@
-"""pIDLy 0.2.6: IDL within Python.
+"""pIDLy 0.2.7: IDL within Python.
 
 Control ITT's IDL (Interactive Data Language) from within Python.
 
@@ -20,7 +20,7 @@ Usage:
 Consult the docstrings or README.txt in the source distribution for
 further information.
 
-Copyright (c) 2008-2014, Anthony Smith
+Copyright (c) 2008-2017, Anthony Smith
 anthonysmith80@gmail.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

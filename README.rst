@@ -6,17 +6,19 @@ pIDLy: IDL within Python
 Control ITT's IDL (Interactive Data Language) from within Python.
 -----------------------------------------------------------------
 
-Version 0.2.6
+Version 0.2.7
 
-Copyright (c) 2008-2014, Anthony Smith
+Copyright (c) 2008-2017, Anthony Smith
 
 anthonysmith80@gmail.com
+
+(NB: since pIDLy was written, IDL has developed a two-way `Python Bridge <http://www.harrisgeospatial.com/docs/Python.html>`_. I recommend trying that first.)
 
 This module has been written to enable an `IDL <http://www.ittvis.com/idl/>`_ session to be controlled from within `Python <http://www.python.org/">`_. I was inspired by `pyIDL <http://www.its.caltech.edu/~mmckerns/software.html>`_, which looks great but which I couldn't manage to install. So I wrote my own.
 
 pIDLy works by launching an IDL session as a child application and then passing data between Python and the IDL shell. It's not particularly fast, so not suitable for applications which require huge amounts of data to be passed around with ease. But it should be fine for most applications.
 
-pIDLy requires `NumPy <http://numpy.scipy.org/>`_ and `Pexpect <http://pexpect.sourceforge.net/>`_, but these will (hopefully!) be installed automatically if you follow the instructions below. You also need IDL, of course.
+pIDLy requires `NumPy <http://www.numpy.org/>`_, `SciPy <https://www.scipy.org/>`_ and `Pexpect <http://pexpect.readthedocs.io/en/stable/>`_, but these will (hopefully!) be installed automatically if you follow the instructions below. You also need IDL, of course.
 
 Contributions welcome!
 
@@ -191,8 +193,8 @@ Further information is available
 7. Release history
 ==================
 
-Version x.x.x
--------------
+Version 0.2.7, 2 Apr 2017
+-------------------------
 
 * Add use_cache option to transfer data using IDL save (with thanks to Fmajor)
 
