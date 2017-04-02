@@ -92,6 +92,19 @@ Evaluate expressions::
  >>> print idl.ev('x ^ 2')
  4
 
+Use cache (IDL save) to handle large arrays::
+ >>> idl('x=[1,2,3,4,5,6]')
+ >>> print(idl.ev('x', use_cache=True))
+ [1 2 3 4 5 6]
+
+Transfer a list of IDL variables, using cache::
+ >>> idl('y=[1,2,3,4,5,6]')
+ >>> xy = idl.ev_list(['x','y'], use_cache=True)
+ >>> print(sorted(xy.keys()))
+ ['x', 'y']
+ >>> print(xy['x'])
+ [1 2 3 4 5 6]
+
 Assign value from Python expression::
  >>> idl.x = 2 + 2
  >>> print idl.x
@@ -177,6 +190,11 @@ Further information is available
 
 7. Release history
 ==================
+
+Version x.x.x
+-------------
+
+* Add use_cache option to transfer data using IDL save (with thanks to Fmajor)
 
 Version 0.2.6, 4 Aug 2014
 -------------------------
